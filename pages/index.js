@@ -1,209 +1,113 @@
 import Head from 'next/head'
+import { useEffect, useState } from "react";
+import { DateRangePicker } from 'react-date-range';
+import { Audio } from  'react-loader-spinner'
 
 export default function Home() {
+  const [posts, setPosts] = useState([]);
+  
+  const yesterday = new Date((new Date()).valueOf() - 1000*60*60*24);
+  const today = new Date();
+
+  const [startDate, setStartDate] = useState(yesterday);
+  const [endDate, setEndDate] = useState(today);
+  const [likes, setLikes] = useState(new Set());
+
+  let fetchImages = () => {
+    let key = 'YkmTmSEo7egiCG0c0fGGRNil8uBZl2CO7aIfkYdM'
+    fetch(`https://api.nasa.gov/planetary/apod?api_key=${key}&start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`)
+      .then((response) => response.json())
+      .then((response) => {
+        if(Array.isArray(response)) setPosts(response)
+        //wanted to add an alert concerning invalid times, but left it like this in interest of time 
+      });
+  }
+
+  const handleDateSelect = (ranges) => {
+    setStartDate(ranges.selection.startDate)
+    setEndDate(ranges.selection.endDate)
+  }
+
+  const handleLike = (imageDate) => {
+    let tempLikes = likes
+    if(tempLikes.has(imageDate)) tempLikes.delete(imageDate)
+    else tempLikes.add(imageDate)
+    setLikes(new Set(tempLikes))
+  }
+
+  const selectionRange = {
+    startDate: startDate,
+    endDate: endDate,
+    key: 'selection',
+  }
+
+  useEffect(() => {
+    fetchImages()
+  }, [startDate, endDate]);
+
   return (
-    <div className="container">
+    <div className="h-100">
       <Head>
-        <title>Create Next App</title>
+        <title>NasaGram</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-
-      <main>
-        <h1 className="title">
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
+      <main className="w-9/12 flex-col justify-center items-center mx-auto">
+        <h1 className="dark:text-white text-6xl text-center py-5">
+          Welcome to NasaGram!
         </h1>
-
-        <p className="description">
-          Get started by editing <code>pages/index.js</code>
-        </p>
-
-        <div className="grid">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className="card"
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="card"
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+        <div className="flex justify-center">
+          <p className="text-slate-900 dark:text-white text-base font-medium tracking-tight mr-10">Select date range for results:</p>
+          <DateRangePicker
+            ranges={[selectionRange]}
+            onChange={handleDateSelect}
+          />
         </div>
+        {posts.length !== 0 ? posts.map((item, i) => 
+          <section key={i} className="main mx-auto my-5">
+            <div className="bg-white dark:bg-slate-900 rounded-lg ring-1 ring-slate-900/5 shadow-xl">
+                <div className="h-14 flex items-center px-5 justify-between">
+                  <p className="text-slate-900 dark:text-white text-base font-medium tracking-tight">{item.copyright || "Unknown"}</p>
+                </div>
+                <img src={item.hdurl} alt={`Post by: ${item.copyright}`} />
+                <div className="p-5">
+                    <div className="flex">
+                      <button 
+                        className="bg-black hover:bg-slate-400 text-white font-bold py-2 px-4 border-b-4 border-slate-800 hover:border-slate-500 rounded"
+                        onClick={() => handleLike(item.date)}
+                      >
+                        Like
+                      </button>
+                      <p className="font-bold text-slate-500 dark:text-slate-400 m-2 mx-4">{likes.has(item.date) ? "1 like" : "0 likes"}</p>
+                    </div>
+                    <p className="description text-slate-500 dark:text-slate-400 mt-2 text-sm">
+                      {item.explanation}
+                    </p>
+                    <p className="font-bold text-slate-500 dark:text-slate-400 mt-2 text-sm">{item.date}</p>
+                </div>
+            </div>
+          </section>)
+          : <section className="mx-auto my-5 justify-center flex">
+            <Audio
+              heigth="100"
+              width="100"
+              color='white'
+              ariaLabel='loading'
+            />
+          </section>
+        }
       </main>
 
-      <footer>
+      <footer className="dark:bg-slate-600 flex justify-center items-center relative inset-x-0 bottom-0 h-16">
         <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
+          href="https://thomasneter.me/"
           target="_blank"
           rel="noopener noreferrer"
+          className="flex items-center font-bold dark:text-white"
         >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel" className="logo" />
+          Made by Thomas Neter
+          {/* <img src="/vercel.svg" alt="Vercel" className="ml-2" /> */}
         </a>
       </footer>
-
-      <style jsx>{`
-        .container {
-          min-height: 100vh;
-          padding: 0 0.5rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        main {
-          padding: 5rem 0;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer {
-          width: 100%;
-          height: 100px;
-          border-top: 1px solid #eaeaea;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer img {
-          margin-left: 0.5rem;
-        }
-
-        footer a {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        a {
-          color: inherit;
-          text-decoration: none;
-        }
-
-        .title a {
-          color: #0070f3;
-          text-decoration: none;
-        }
-
-        .title a:hover,
-        .title a:focus,
-        .title a:active {
-          text-decoration: underline;
-        }
-
-        .title {
-          margin: 0;
-          line-height: 1.15;
-          font-size: 4rem;
-        }
-
-        .title,
-        .description {
-          text-align: center;
-        }
-
-        .description {
-          line-height: 1.5;
-          font-size: 1.5rem;
-        }
-
-        code {
-          background: #fafafa;
-          border-radius: 5px;
-          padding: 0.75rem;
-          font-size: 1.1rem;
-          font-family: Menlo, Monaco, Lucida Console, Liberation Mono,
-            DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
-        }
-
-        .grid {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-
-          max-width: 800px;
-          margin-top: 3rem;
-        }
-
-        .card {
-          margin: 1rem;
-          flex-basis: 45%;
-          padding: 1.5rem;
-          text-align: left;
-          color: inherit;
-          text-decoration: none;
-          border: 1px solid #eaeaea;
-          border-radius: 10px;
-          transition: color 0.15s ease, border-color 0.15s ease;
-        }
-
-        .card:hover,
-        .card:focus,
-        .card:active {
-          color: #0070f3;
-          border-color: #0070f3;
-        }
-
-        .card h3 {
-          margin: 0 0 1rem 0;
-          font-size: 1.5rem;
-        }
-
-        .card p {
-          margin: 0;
-          font-size: 1.25rem;
-          line-height: 1.5;
-        }
-
-        .logo {
-          height: 1em;
-        }
-
-        @media (max-width: 600px) {
-          .grid {
-            width: 100%;
-            flex-direction: column;
-          }
-        }
-      `}</style>
-
-      <style jsx global>{`
-        html,
-        body {
-          padding: 0;
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
-            sans-serif;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
     </div>
   )
 }
